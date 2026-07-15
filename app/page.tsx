@@ -183,6 +183,7 @@ export default function Home() {
   return <main className="shell">
     <header className="topbar">
       <a className="brand" href="#top" aria-label="谱练首页"><span>谱</span>练</a>
+      <a className="library-link" href="/library">完整曲库</a>
       <div className="top-note"><i />32 键练习音域 <b>C3 — G5</b></div>
       <button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((enabled) => !enabled)} aria-pressed={soundEnabled}>{!soundEnabled ? "♩ 声音关" : soundStatus === "loading" ? "♩ 加载钢琴…" : soundStatus === "error" ? "♩ 声音不可用" : "♩ 钢琴音色"}</button>
       <button className="import-button" onClick={() => setIsImporting(true)}>＋ 导入 MusicXML</button>
@@ -191,7 +192,7 @@ export default function Home() {
     <section id="top" className="intro">
       <p className="eyebrow">SIGHT-READING STUDIO · NO RHYTHM YET</p>
       <h1>把每一个音，<em>弹得笃定。</em></h1>
-      <p>看五线谱，用键盘回答。先只专注音高，再一步步走向真正的钢琴谱。</p>
+      <p>看五线谱，用键盘回答。先只专注音高；想练完整小品时，前往 <a href="/library">完整曲库 →</a></p>
     </section>
 
     <section className="workspace" aria-label="五线谱练习区">
