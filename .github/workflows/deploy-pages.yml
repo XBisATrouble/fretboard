@@ -30,6 +30,7 @@ jobs:
       - run: npm run build:pages
         env:
           NEXT_PUBLIC_SCORES_API_URL: https://pu-lian-piano.xbisatrouble.chatgpt.site/api/scores
+          NEXT_PUBLIC_SCORES_API_TOKEN: SfwAqHQdZShOVryCZIkKoBEjeJ7dyJQ_g3_sqhvLhF0
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

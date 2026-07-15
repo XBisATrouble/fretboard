@@ -18,7 +18,7 @@ const flatToSharp: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, OAI-Sites-Authorization",
 };
 
 function normalizeNote(note: string) {

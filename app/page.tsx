@@ -29,6 +29,8 @@ const FLAT_TO_SHARP: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab
 const SHARP_TO_FLAT: Record<string, string> = { "C#": "Db", "D#": "Eb", "F#": "Gb", "G#": "Ab", "A#": "Bb" };
 const SOUND_FONT_NOTES = PLAYABLE_NOTES.map((note) => `${SHARP_TO_FLAT[note.slice(0, -1)] ?? note.slice(0, -1)}${note.at(-1)}`);
 const SCORES_API_URL = process.env.NEXT_PUBLIC_SCORES_API_URL ?? "/api/scores";
+const SCORES_API_TOKEN = process.env.NEXT_PUBLIC_SCORES_API_TOKEN;
+const scoresApiHeaders = SCORES_API_TOKEN ? { "OAI-Sites-Authorization": `Bearer ${SCORES_API_TOKEN}` } : {};
 let audioContext: AudioContext | null = null;
 let grandPiano: Player | null = null;
 let pianoLoading: Promise<Player> | null = null;
@@ -114,7 +116,7 @@ export default function Home() {
   const inRange = selected.notes.every((note) => PLAYABLE_NOTES.includes(note));
 
   useEffect(() => {
-    fetch(SCORES_API_URL).then((response) => response.ok ? response.json() : []).then((data: Score[]) => {
+    fetch(SCORES_API_URL, { headers: scoresApiHeaders }).then((response) => response.ok ? response.json() : []).then((data: Score[]) => {
       if (Array.isArray(data) && data.length) setScores((existing) => [...existing, ...data]);
     }).catch(() => undefined);
   }, []);
@@ -164,7 +166,7 @@ export default function Home() {
       const notes = parseMusicXml(xml);
       if (!notes.every((note) => PLAYABLE_NOTES.includes(note))) throw new Error("这份谱含有超出 C3–G5 的音。请先在制谱软件中移调后再导入。 ");
       if (!title.trim()) throw new Error("请给谱子一个标题。 ");
-      const response = await fetch(SCORES_API_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, composer, level: "自定义 · 公共谱库", notes, musicXml: xml }) });
+      const response = await fetch(SCORES_API_URL, { method: "POST", headers: { ...scoresApiHeaders, "content-type": "application/json" }, body: JSON.stringify({ title, composer, level: "自定义 · 公共谱库", notes, musicXml: xml }) });
       const created = await response.json();
       if (!response.ok) throw new Error(created.error ?? "保存失败，请稍后重试。 ");
       setScores((all) => [created, ...all]);
