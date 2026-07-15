@@ -15,6 +15,11 @@ const playableNotes = new Set([
   "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5",
 ]);
 const flatToSharp: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E" };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
 function normalizeNote(note: string) {
   const match = /^([A-G])([#b]?)([0-8])$/.exec(note);
@@ -47,7 +52,11 @@ export async function GET() {
     notes: JSON.parse(score.notes_json),
     shared: true,
     createdAt: score.created_at,
-  })));
+  })), { headers: corsHeaders });
+}
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: corsHeaders });
 }
 
 export async function POST(request: Request) {
@@ -62,7 +71,7 @@ export async function POST(request: Request) {
   const musicXml = typeof body?.musicXml === "string" ? body.musicXml : "";
 
   if (!title || title.length > 80 || !musicXml || musicXml.length > 180_000 || notes.length < 1 || notes.length > 256 || normalizedNotes.some((note) => !note || !playableNotes.has(note))) {
-    return Response.json({ error: "谱目格式无效，或音高超出 C3–G5 的 32 键练习范围。" }, { status: 400 });
+    return Response.json({ error: "谱目格式无效，或音高超出 C3–G5 的 32 键练习范围。" }, { status: 400, headers: corsHeaders });
   }
 
   await ensureSchema();
@@ -77,5 +86,5 @@ export async function POST(request: Request) {
     level: level || "自定义",
     notes: normalizedNotes,
     shared: true,
-  }, { status: 201 });
+  }, { status: 201, headers: corsHeaders });
 }
