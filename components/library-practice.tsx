@@ -3,6 +3,7 @@
 import { instrument, type Player } from "soundfont-player";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LibraryPiece } from "../lib/repertoire";
+import { sitePath } from "../lib/site-path";
 
 const PLAYABLE_NOTES = ["C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3","C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4","C5","C#5","D5","D#5","E5","F5","F#5","G5"];
 const KEY_TO_NOTE: Record<string, string> = { z:"C3", s:"C#3", x:"D3", d:"D#3", c:"E3", v:"F3", g:"F#3", b:"G3", h:"G#3", n:"A3", j:"A#3", m:"B3", q:"C4", "2":"C#4", w:"D4", "3":"D#4", e:"E4", r:"F4", "5":"F#4", t:"G4", "6":"G#4", y:"A4", "7":"A#4", u:"B4", i:"C5", "9":"C#5", o:"D5", "0":"D#5", p:"E5", "[":"F5", "=":"F#5", "]":"G5" };
@@ -71,7 +72,7 @@ export function LibraryPractice({ piece }: { piece: LibraryPiece }) {
 
   const keyboardKeys = useMemo(() => PLAYABLE_NOTES.map((note) => ({ note, key: NOTE_TO_KEY[note], black: note.includes("#") })), []);
   return <main className="library-practice shell">
-    <header className="topbar"><a className="brand" href="/"><span>谱</span>练</a><a className="back-library" href="/library">← 返回曲库</a><div className="top-note">右手单音 · <b>{piece.key}</b></div><button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "♩ 钢琴音色" : "♩ 声音关"}</button></header>
+    <header className="topbar"><a className="brand" href={sitePath("/")}><span>谱</span>练</a><a className="back-library" href={sitePath("/library/")}>← 返回曲库</a><div className="top-note">右手单音 · <b>{piece.key}</b></div><button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "♩ 钢琴音色" : "♩ 声音关"}</button></header>
     <section className="piece-hero"><p className="eyebrow">完整小品 · RIGHT HAND ONLY</p><h1>{piece.title}</h1><p>{piece.composer}　·　{piece.level}　·　{piece.focus}</p></section>
     <section className="line-practice" aria-label="逐行读谱练习">
       <div className="line-status"><span>第 <b>{systemIndex + 1}</b> / {piece.systems.length} 行</span><span>{completed ? "已完成" : `当前音 ${current}`}</span></div>

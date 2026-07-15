@@ -31,6 +31,7 @@ jobs:
         env:
           NEXT_PUBLIC_SCORES_API_URL: https://pu-lian-piano.xbisatrouble.chatgpt.site/api/scores
           NEXT_PUBLIC_SCORES_API_TOKEN: SfwAqHQdZShOVryCZIkKoBEjeJ7dyJQ_g3_sqhvLhF0
+          NEXT_PUBLIC_BASE_PATH: /fretboard
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -2,6 +2,7 @@
 
 import { instrument, type Player } from "soundfont-player";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { sitePath } from "../lib/site-path";
 
 const PLAYABLE_NOTES = ["C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3","C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4","C5","C#5","D5","D#5","E5","F5","F#5","G5"];
 const KEY_TO_NOTE: Record<string, string> = { z:"C3", s:"C#3", x:"D3", d:"D#3", c:"E3", v:"F3", g:"F#3", b:"G3", h:"G#3", n:"A3", j:"A#3", m:"B3", q:"C4", "2":"C#4", w:"D4", "3":"D#4", e:"E4", r:"F4", "5":"F#4", t:"G4", "6":"G#4", y:"A4", "7":"A#4", u:"B4", i:"C5", "9":"C#5", o:"D5", "0":"D#5", p:"E5", "[":"F5", "=":"F#5", "]":"G5" };
@@ -96,7 +97,7 @@ export function FlashcardPractice() {
 
   const keyboardKeys = useMemo(() => PLAYABLE_NOTES.map((note) => ({ note, key: NOTE_TO_KEY[note], black: note.includes("#") })), []);
   return <main className="flashcards-page shell">
-    <header className="topbar"><a className="brand" href="/"><span>谱</span>练</a><a className="back-library" href="/">← 返回首页体验</a><a className="library-link" href="/library">完整曲库</a><button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "♩ 钢琴音色" : "♩ 声音关"}</button></header>
+    <header className="topbar"><a className="brand" href={sitePath("/")}><span>谱</span>练</a><a className="back-library" href={sitePath("/")}>← 返回首页体验</a><a className="library-link" href={sitePath("/library/")}>完整曲库</a><button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "♩ 钢琴音色" : "♩ 声音关"}</button></header>
     <section className="flash-hero"><p className="eyebrow">SIGHT-READING FLASHCARDS · NO RHYTHM YET</p><h1>看见一个音，<em>立刻找到它。</em></h1><p>没有节奏、没有旋律负担；只练五线谱位置与琴键之间的即时反应。</p></section>
     <section className="flash-workspace" aria-label="读谱闪卡练习">
       <aside className="flash-decks"><div className="section-heading"><span>选择牌组</span><small>由易到难</small></div>{(Object.entries(DECKS) as [DeckId, typeof deck][]).map(([id, item], index) => <button key={id} onClick={() => chooseDeck(id)} className={`flash-deck ${id === deckId ? "selected" : ""}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.label}<small>{item.description}</small></strong></button>)}<div className="flash-tip">每答对一张，自动换下一张。按错不会跳过。</div></aside>

@@ -45,6 +45,7 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    base: isGitHubPagesBuild ? "/fretboard/" : "/",
     resolve: isGitHubPagesBuild
       ? { alias: { "cloudflare:workers": new URL("./app/api/cloudflare-worker-stub.ts", import.meta.url).pathname } }
       : undefined,
