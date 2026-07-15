@@ -19,6 +19,33 @@ const PLAYABLE_NOTES = [
 const KEY_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "a", "s", "d", "f", "g", "h", "j", "k"];
 const KEY_TO_NOTE = Object.fromEntries(KEY_LABELS.map((key, index) => [key, PLAYABLE_NOTES[index]]));
 const FLAT_TO_SHARP: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E" };
+let audioContext: AudioContext | null = null;
+
+function playPianoTone(note: string) {
+  const context = audioContext ?? new AudioContext();
+  audioContext = context;
+  const pitchClasses: Record<string, number> = { C: 0, "C#": 1, D: 2, "D#": 3, E: 4, F: 5, "F#": 6, G: 7, "G#": 8, A: 9, "A#": 10, B: 11 };
+  const name = note.slice(0, -1);
+  const octave = Number(note.at(-1));
+  const frequency = 440 * 2 ** ((((octave + 1) * 12 + pitchClasses[name]) - 69) / 12);
+  const now = context.currentTime;
+  const master = context.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.22, now + 0.012);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+  master.connect(context.destination);
+  [[1, 1], [2.01, 0.15], [3, 0.06]].forEach(([harmonic, volume]) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency * harmonic, now);
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.05 / harmonic);
+    oscillator.connect(gain).connect(master);
+    oscillator.start(now);
+    oscillator.stop(now + 1.3);
+  });
+}
 
 const FOUNDATION: Score[] = [
   { id: "ode", title: "欢乐颂 · 主题", composer: "贝多芬", level: "01 · 初识音高", notes: ["E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","E4","D4","D4"] },
@@ -68,6 +95,7 @@ export default function Home() {
   const [composer, setComposer] = useState("");
   const [importError, setImportError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const selected = scores.find((score) => score.id === scoreId) ?? scores[0];
   const current = selected.notes[cursor];
   const progress = selected.notes.length ? Math.round((cursor / selected.notes.length) * 100) : 0;
@@ -80,6 +108,7 @@ export default function Home() {
   }, []);
 
   const playNote = useCallback((note: string) => {
+    if (soundEnabled) playPianoTone(note);
     setPressed(note);
     window.setTimeout(() => setPressed(null), 100);
     if (!inRange) { setMessage("这首谱子包含超出 32 键范围的音，请先移调后再练习。 "); return; }
@@ -97,7 +126,7 @@ export default function Home() {
       setIsWrong(true); setMessage(`再试一次：目标音是 ${current}。`);
       window.setTimeout(() => setIsWrong(false), 360);
     }
-  }, [current, cursor, inRange, selected.notes.length]);
+  }, [current, cursor, inRange, selected.notes.length, soundEnabled]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -141,6 +170,7 @@ export default function Home() {
     <header className="topbar">
       <a className="brand" href="#top" aria-label="谱练首页"><span>谱</span>练</a>
       <div className="top-note"><i />32 键练习音域 <b>C3 — G5</b></div>
+      <button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((enabled) => !enabled)} aria-pressed={soundEnabled}>{soundEnabled ? "♩ 声音开" : "♩ 声音关"}</button>
       <button className="import-button" onClick={() => setIsImporting(true)}>＋ 导入 MusicXML</button>
     </header>
 
