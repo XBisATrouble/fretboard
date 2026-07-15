@@ -50,8 +50,15 @@ function pitchToY(note: string) {
   const steps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
   const diatonic = octave * 7 + steps[natural];
   const e4 = 4 * 7 + 2;
-  // E4 is the bottom treble-staff line at y=122px; every diatonic step is half a staff-line gap.
-  return 112 - (diatonic - e4) * 10;
+  // E4 sits on the bottom treble-staff line. A diatonic step equals half a staff gap.
+  return 103.5 - (diatonic - e4) * 7;
+}
+
+function ledgerLines(note: string) {
+  const steps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
+  const distanceFromE4 = (Number(note.at(-1)) * 7 + steps[note[0]]) - (4 * 7 + 2);
+  if (distanceFromE4 > -2) return [];
+  return Array.from({ length: Math.floor(-distanceFromE4 / 2) }, (_, index) => 126 + index * 14);
 }
 
 function parseMusicXml(xml: string) {
@@ -191,8 +198,8 @@ export default function Home() {
         <div className="practice-meta"><span>{selected.level}</span><span>{selected.composer}</span></div>
         <h2>{selected.title}</h2>
         <div className={`staff ${isWrong ? "wrong" : ""}`} aria-label={`当前目标音：${current ?? "已完成"}`}>
-          <div className="clef">𝄞</div>{[0, 1, 2, 3, 4].map((line) => <i key={line} className="staff-line" style={{ top: 42 + line * 20 }} />)}
-          <div className="notes-row">{selected.notes.map((note, index) => <span key={`${note}-${index}`} className={`written-note ${index === cursor ? "current" : ""} ${index < cursor ? "done" : ""}`} style={{ left: `${96 + index * (Math.min(680 / Math.max(selected.notes.length - 1, 1), 48))}px`, top: pitchToY(note) }}><b>{note.includes("#") ? "♯" : ""}</b><i /><small>{index === cursor ? note : ""}</small></span>)}</div>
+          <div className="clef">𝄞</div>{[0, 1, 2, 3, 4].map((line) => <i key={line} className="staff-line" style={{ top: 56 + line * 14 }} />)}
+          <div className="notes-row">{selected.notes.map((note, index) => <span key={`${note}-${index}`} className={`written-note ${index === cursor ? "current" : ""} ${index < cursor ? "done" : ""}`} style={{ left: `${96 + index * (Math.min(680 / Math.max(selected.notes.length - 1, 1), 48))}px`, top: pitchToY(note) }}>{ledgerLines(note).map((top, ledgerIndex) => <em key={ledgerIndex} className="ledger-line" style={{ top: `${top - pitchToY(note)}px` }} />)}<b>{note.includes("#") ? "♯" : ""}</b><i /><small>{index === cursor ? note : ""}</small></span>)}</div>
         </div>
         <div className="feedback"><span className={isWrong ? "error-dot" : "good-dot"}>{cursor >= selected.notes.length ? "✓" : isWrong ? "×" : "●"}</span><strong>{message}</strong><span className="next-note">下一音 <b>{current ?? "完成"}</b></span></div>
         <div className="progress"><i style={{ width: `${progress}%` }} /></div>
