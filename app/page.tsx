@@ -17,8 +17,14 @@ const PLAYABLE_NOTES = [
   "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
   "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5",
 ];
-const KEY_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "a", "s", "d", "f", "g", "h", "j", "k"];
-const KEY_TO_NOTE = Object.fromEntries(KEY_LABELS.map((key, index) => [key, PLAYABLE_NOTES[index]]));
+// Follow the familiar computer-piano arrangement: lower letters for the low octave,
+// Q–U for the middle octave, I–] for the upper notes; the raised keys sit on S/D/G/H/J and 2/3/5/6/7/9/0/=.
+const KEY_TO_NOTE: Record<string, string> = {
+  z: "C3", s: "C#3", x: "D3", d: "D#3", c: "E3", v: "F3", g: "F#3", b: "G3", h: "G#3", n: "A3", j: "A#3", m: "B3",
+  q: "C4", "2": "C#4", w: "D4", "3": "D#4", e: "E4", r: "F4", "5": "F#4", t: "G4", "6": "G#4", y: "A4", "7": "A#4", u: "B4",
+  i: "C5", "9": "C#5", o: "D5", "0": "D#5", p: "E5", "[": "F5", "=": "F#5", "]": "G5",
+};
+const NOTE_TO_KEY = Object.fromEntries(Object.entries(KEY_TO_NOTE).map(([key, note]) => [note, key]));
 const FLAT_TO_SHARP: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E" };
 let audioContext: AudioContext | null = null;
 let grandPiano: Player | null = null;
@@ -167,7 +173,7 @@ export default function Home() {
     if (file) setXml(await file.text());
   }
 
-  const keyboardKeys = useMemo(() => PLAYABLE_NOTES.map((note, index) => ({ note, key: KEY_LABELS[index], black: note.includes("#") })), []);
+  const keyboardKeys = useMemo(() => PLAYABLE_NOTES.map((note) => ({ note, key: NOTE_TO_KEY[note], black: note.includes("#") })), []);
 
   return <main className="shell">
     <header className="topbar">
@@ -208,10 +214,10 @@ export default function Home() {
     </section>
 
     <section className="keyboard-section">
-      <div className="keyboard-caption"><span><b>电脑键盘</b> · 数字行 → QWERTY → ASDFGHJK</span><span>点击琴键也可练习</span></div>
+      <div className="keyboard-caption"><span><b>电脑键盘</b> · 低音：Z–M　中音：Q–U　高音：I–]</span><span>黑键：S/D/G/H/J · 2/3/5/6/7 · 9/0/=</span></div>
       <div className="piano" aria-label="32 键虚拟钢琴">
-        {keyboardKeys.filter(({ black }) => !black).map(({ note, key }) => <button key={note} className={`white-key ${pressed === note ? "pressed" : ""} ${current === note ? "target" : ""}`} onClick={() => playNote(note)}><b>{note.replace("#", "")}</b><kbd>{key}</kbd></button>)}
-        <div className="black-keys">{keyboardKeys.filter(({ black }) => black).map(({ note, key }) => { const index = PLAYABLE_NOTES.indexOf(note); const whiteBefore = PLAYABLE_NOTES.slice(0, index).filter((value) => !value.includes("#")).length; return <button key={note} style={{ left: `calc(${whiteBefore * 100 / 19}% - 2.55%)` }} className={`black-key ${pressed === note ? "pressed" : ""} ${current === note ? "target" : ""}`} onClick={() => playNote(note)}><kbd>{key}</kbd></button>; })}</div>
+        {keyboardKeys.filter(({ black }) => !black).map(({ note, key }) => <button key={note} className={`white-key ${pressed === note ? "pressed" : ""} ${current === note ? "target" : ""}`} onClick={() => playNote(note)}><b>{note.replace("#", "")}</b><kbd>{key.toUpperCase()}</kbd></button>)}
+        <div className="black-keys">{keyboardKeys.filter(({ black }) => black).map(({ note, key }) => { const index = PLAYABLE_NOTES.indexOf(note); const whiteBefore = PLAYABLE_NOTES.slice(0, index).filter((value) => !value.includes("#")).length; return <button key={note} style={{ left: `calc(${whiteBefore * 100 / 19}% - 2.55%)` }} className={`black-key ${pressed === note ? "pressed" : ""} ${current === note ? "target" : ""}`} onClick={() => playNote(note)}><kbd>{key.toUpperCase()}</kbd></button>; })}</div>
       </div>
       <div className="range-note">练习音域固定为 <b>C3–G5</b>。导入的谱子建议先在 MuseScore、Dorico 或 Finale 中移调至此范围。</div>
     </section>
