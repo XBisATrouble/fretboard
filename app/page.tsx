@@ -18,6 +18,7 @@ const PLAYABLE_NOTES = [
 ];
 const KEY_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "a", "s", "d", "f", "g", "h", "j", "k"];
 const KEY_TO_NOTE = Object.fromEntries(KEY_LABELS.map((key, index) => [key, PLAYABLE_NOTES[index]]));
+const FLAT_TO_SHARP: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E" };
 
 const FOUNDATION: Score[] = [
   { id: "ode", title: "欢乐颂 · 主题", composer: "贝多芬", level: "01 · 初识音高", notes: ["E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","E4","D4","D4"] },
@@ -44,7 +45,11 @@ function parseMusicXml(xml: string) {
       const alter = note.querySelector("pitch > alter")?.textContent?.trim();
       const octave = note.querySelector("pitch > octave")?.textContent?.trim();
       if (!step || !octave) return null;
-      return `${step}${alter === "1" ? "#" : alter === "-1" ? "b" : ""}${octave}`;
+      const accidental = alter === "1" ? "#" : alter === "-1" ? "b" : "";
+      const base = `${step}${accidental}`;
+      if (base === "B#") return `C${Number(octave) + 1}`;
+      if (base === "E#") return `F${octave}`;
+      return `${FLAT_TO_SHARP[base] ?? base}${octave}`;
     }).filter((note): note is string => Boolean(note));
   if (!notes.length) throw new Error("没有读到可练习的音符。 ");
   return notes;
