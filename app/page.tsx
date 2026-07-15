@@ -102,6 +102,7 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundStatus, setSoundStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [showKeyHints, setShowKeyHints] = useState(true);
   const selected = scores.find((score) => score.id === scoreId) ?? scores[0];
   const current = selected.notes[cursor];
   const progress = selected.notes.length ? Math.round((cursor / selected.notes.length) * 100) : 0;
@@ -214,10 +215,10 @@ export default function Home() {
     </section>
 
     <section className="keyboard-section">
-      <div className="keyboard-caption"><span><b>电脑键盘</b> · 低音：Z–M　中音：Q–U　高音：I–]</span><span>黑键：S/D/G/H/J · 2/3/5/6/7 · 9/0/=</span></div>
-      <div className="piano" aria-label="32 键虚拟钢琴">
-        {keyboardKeys.filter(({ black }) => !black).map(({ note, key }) => <button key={note} className={`white-key ${pressed === note ? "pressed" : ""} ${current === note ? "target" : ""}`} onClick={() => playNote(note)}><b>{note.replace("#", "")}</b><kbd>{key.toUpperCase()}</kbd></button>)}
-        <div className="black-keys">{keyboardKeys.filter(({ black }) => black).map(({ note, key }) => { const index = PLAYABLE_NOTES.indexOf(note); const whiteBefore = PLAYABLE_NOTES.slice(0, index).filter((value) => !value.includes("#")).length; return <button key={note} style={{ left: `calc(${whiteBefore * 100 / 19}% - 2.55%)` }} className={`black-key ${pressed === note ? "pressed" : ""} ${current === note ? "target" : ""}`} onClick={() => playNote(note)}><kbd>{key.toUpperCase()}</kbd></button>; })}</div>
+      <div className="keyboard-caption"><span><b>电脑键盘</b>{showKeyHints ? " · 低音：Z–M　中音：Q–U　高音：I–]" : " · 盲练模式"}</span><button className={`hint-toggle ${showKeyHints ? "on" : ""}`} onClick={() => setShowKeyHints((visible) => !visible)} aria-pressed={showKeyHints}>{showKeyHints ? "琴键提示：开" : "琴键提示：关"}</button></div>
+      <div className={`piano ${showKeyHints ? "" : "hints-off"}`} aria-label="32 键虚拟钢琴">
+        {keyboardKeys.filter(({ black }) => !black).map(({ note, key }) => <button key={note} className={`white-key ${pressed === note ? "pressed" : ""} ${showKeyHints && current === note ? "target" : ""}`} onClick={() => playNote(note)}><b>{note.replace("#", "")}</b><kbd>{key.toUpperCase()}</kbd></button>)}
+        <div className="black-keys">{keyboardKeys.filter(({ black }) => black).map(({ note, key }) => { const index = PLAYABLE_NOTES.indexOf(note); const whiteBefore = PLAYABLE_NOTES.slice(0, index).filter((value) => !value.includes("#")).length; return <button key={note} style={{ left: `calc(${whiteBefore * 100 / 19}% - 2.55%)` }} className={`black-key ${pressed === note ? "pressed" : ""} ${showKeyHints && current === note ? "target" : ""}`} onClick={() => playNote(note)}><kbd>{key.toUpperCase()}</kbd></button>; })}</div>
       </div>
       <div className="range-note">练习音域固定为 <b>C3–G5</b>。导入的谱子建议先在 MuseScore、Dorico 或 Finale 中移调至此范围。</div>
     </section>
