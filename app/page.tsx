@@ -26,6 +26,8 @@ const KEY_TO_NOTE: Record<string, string> = {
 };
 const NOTE_TO_KEY = Object.fromEntries(Object.entries(KEY_TO_NOTE).map(([key, note]) => [note, key]));
 const FLAT_TO_SHARP: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E" };
+const SHARP_TO_FLAT: Record<string, string> = { "C#": "Db", "D#": "Eb", "F#": "Gb", "G#": "Ab", "A#": "Bb" };
+const SOUND_FONT_NOTES = PLAYABLE_NOTES.map((note) => `${SHARP_TO_FLAT[note.slice(0, -1)] ?? note.slice(0, -1)}${note.at(-1)}`);
 let audioContext: AudioContext | null = null;
 let grandPiano: Player | null = null;
 let pianoLoading: Promise<Player> | null = null;
@@ -37,7 +39,9 @@ async function playPianoTone(note: string) {
   if (!pianoLoading) {
     pianoLoading = instrument(context, "acoustic_grand_piano", {
       soundfont: "MusyngKite",
-      notes: PLAYABLE_NOTES,
+      // MIDI.js stores the raised notes with flat names (Db, Eb, …); loading those
+      // sample names ensures the player also has audio buffers for C#, D#, F#, G#, and A#.
+      notes: SOUND_FONT_NOTES,
     }).then((player) => (grandPiano = player));
   }
   const player = grandPiano ?? await pianoLoading;
