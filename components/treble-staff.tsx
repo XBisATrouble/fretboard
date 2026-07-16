@@ -44,7 +44,8 @@ export function TrebleStaff({ ariaLabel, className = "", notes, currentIndex, co
   const hasLowLedger = notes.some((note) => Number(note.at(-1)) <= 3);
 
   return <div className={`staff ${className} ${hasLowLedger ? "has-low-ledger" : ""}`} aria-label={ariaLabel}>
-    <div className="clef" aria-hidden="true">𝄞</div>
+    {/* Bravura's SMuFL gClef glyph is positioned to wrap the second staff line (G4). */}
+    <div className="clef" aria-hidden="true">{"\uE050"}</div>
     {keySignature === "G" && <span className="key-signature key-g-major" aria-label="G 大调，F 升"><b>♯</b></span>}
     {[0, 1, 2, 3, 4].map((line) => <i key={line} className="staff-line" style={{ top: 56 + line * 14 }} />)}
     <div className="notes-row">
