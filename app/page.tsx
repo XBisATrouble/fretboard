@@ -2,6 +2,7 @@
 
 import { instrument, type Player } from "soundfont-player";
 import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { MidiConnect } from "../components/midi-connect";
 import { sitePath } from "../lib/site-path";
 
 type Score = {
@@ -191,6 +192,7 @@ export default function Home() {
       <a className="library-link" href={sitePath("/library/")}>完整曲库</a>
       <div className="top-note"><i />32 键练习音域 <b>C3 — G5</b></div>
       <button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((enabled) => !enabled)} aria-pressed={soundEnabled}>{!soundEnabled ? "♩ 声音关" : soundStatus === "loading" ? "♩ 加载钢琴…" : soundStatus === "error" ? "♩ 声音不可用" : "♩ 钢琴音色"}</button>
+      <MidiConnect onNote={playNote} />
       <button className="import-button" onClick={() => setIsImporting(true)}>＋ 导入 MusicXML</button>
     </header>
 
