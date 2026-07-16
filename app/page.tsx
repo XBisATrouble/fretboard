@@ -3,6 +3,7 @@
 import { instrument, type Player } from "soundfont-player";
 import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { MidiConnect } from "../components/midi-connect";
+import { TrebleStaff } from "../components/treble-staff";
 import { sitePath } from "../lib/site-path";
 
 type Score = {
@@ -11,6 +12,7 @@ type Score = {
   composer: string;
   level: string;
   notes: string[];
+  keySignature?: "G";
   shared?: boolean;
 };
 
@@ -55,26 +57,9 @@ async function playPianoTone(note: string) {
 
 const FOUNDATION: Score[] = [
   { id: "ode", title: "欢乐颂 · 主题", composer: "贝多芬", level: "01 · 初识音高", notes: ["E4","E4","F4","G4","G4","F4","E4","D4","C4","C4","D4","E4","E4","D4","D4"] },
-  { id: "minuet", title: "G 大调小步舞曲 · 主题", composer: "巴赫（归属存疑）", level: "02 · 连续级进", notes: ["D4","G4","A4","B4","C5","D5","D5","D5","E5","D5","C5","B4","A4","G4","G4","G4"] },
+  { id: "minuet", title: "G 大调小步舞曲 · 主题", composer: "巴赫（归属存疑）", level: "02 · 连续级进", keySignature: "G", notes: ["D4","G4","A4","B4","C5","D5","D5","D5","E5","D5","C5","B4","A4","G4","G4","G4"] },
   { id: "turkish", title: "土耳其进行曲 · 主题", composer: "莫扎特", level: "03 · 跨越与回归", notes: ["A4","G#4","A4","G#4","A4","E5","D5","C5","B4","A4","G#4","A4","B4","C5","D5","E5"] },
 ];
-
-function pitchToY(note: string) {
-  const natural = note[0];
-  const octave = Number(note.at(-1));
-  const steps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
-  const diatonic = octave * 7 + steps[natural];
-  const e4 = 4 * 7 + 2;
-  // E4 sits on the bottom treble-staff line. A diatonic step equals half a staff gap.
-  return 103.5 - (diatonic - e4) * 7;
-}
-
-function ledgerLines(note: string) {
-  const steps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
-  const distanceFromE4 = (Number(note.at(-1)) * 7 + steps[note[0]]) - (4 * 7 + 2);
-  if (distanceFromE4 > -2) return [];
-  return Array.from({ length: Math.floor(-distanceFromE4 / 2) }, (_, index) => 126 + index * 14);
-}
 
 function parseMusicXml(xml: string) {
   const document = new DOMParser().parseFromString(xml, "application/xml");
@@ -216,10 +201,7 @@ export default function Home() {
       <div className="practice-card">
         <div className="practice-meta"><span>{selected.level}</span><span>{selected.composer}</span></div>
         <h2>{selected.title}</h2>
-        <div className={`staff ${isWrong ? "wrong" : ""}`} aria-label={`当前目标音：${current ?? "已完成"}`}>
-          <div className="clef">𝄞</div>{[0, 1, 2, 3, 4].map((line) => <i key={line} className="staff-line" style={{ top: 56 + line * 14 }} />)}
-          <div className="notes-row">{selected.notes.map((note, index) => <span key={`${note}-${index}`} className={`written-note ${index === cursor ? "current" : ""} ${index < cursor ? "done" : ""}`} style={{ left: `${96 + index * (Math.min(680 / Math.max(selected.notes.length - 1, 1), 48))}px`, top: pitchToY(note) }}>{ledgerLines(note).map((top, ledgerIndex) => <em key={ledgerIndex} className="ledger-line" style={{ top: `${top - pitchToY(note)}px` }} />)}<b>{note.includes("#") ? "♯" : ""}</b><i /><small>{index === cursor ? note : ""}</small></span>)}</div>
-        </div>
+        <TrebleStaff className={isWrong ? "wrong" : ""} ariaLabel={`当前目标音：${current ?? "已完成"}`} notes={selected.notes} currentIndex={cursor} completed={cursor >= selected.notes.length} keySignature={selected.keySignature} notePosition={(index, count) => ({ left: `${96 + index * Math.min(680 / Math.max(count - 1, 1), 48)}px` })} noteLabel={(note, index) => index === cursor ? note : null} />
         <div className="feedback"><span className={isWrong ? "error-dot" : "good-dot"}>{cursor >= selected.notes.length ? "✓" : isWrong ? "×" : "●"}</span><strong>{message}</strong><span className="next-note">下一音 <b>{current ?? "完成"}</b></span></div>
         <div className="progress"><i style={{ width: `${progress}%` }} /></div>
         <div className="progress-label"><span>进度</span><b>{progress}%</b></div>

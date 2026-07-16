@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LibraryPiece } from "../lib/repertoire";
 import { sitePath } from "../lib/site-path";
 import { MidiConnect } from "./midi-connect";
+import { TrebleStaff } from "./treble-staff";
 
 const PLAYABLE_NOTES = ["C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3","C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4","C5","C#5","D5","D#5","E5","F5","F#5","G5"];
 const KEY_TO_NOTE: Record<string, string> = { z:"C3", s:"C#3", x:"D3", d:"D#3", c:"E3", v:"F3", g:"F#3", b:"G3", h:"G#3", n:"A3", j:"A#3", m:"B3", q:"C4", "2":"C#4", w:"D4", "3":"D#4", e:"E4", r:"F4", "5":"F#4", t:"G4", "6":"G#4", y:"A4", "7":"A#4", u:"B4", i:"C5", "9":"C#5", o:"D5", "0":"D#5", p:"E5", "[":"F5", "=":"F#5", "]":"G5" };
@@ -22,17 +23,6 @@ async function playPianoTone(note: string) {
   if (!pianoLoading) pianoLoading = instrument(context, "acoustic_grand_piano", { soundfont: "MusyngKite", notes: SOUND_FONT_NOTES }).then((player) => (grandPiano = player));
   const player = grandPiano ?? await pianoLoading;
   player.play(note, context.currentTime, { gain: 0.72, attack: 0.01, decay: 0.16, sustain: 0.42, release: 1.3 });
-}
-
-function pitchToY(note: string) {
-  const steps: Record<string, number> = { C:0, D:1, E:2, F:3, G:4, A:5, B:6 };
-  return 103.5 - ((Number(note.at(-1)) * 7 + steps[note[0]]) - (4 * 7 + 2)) * 7;
-}
-
-function ledgerLines(note: string) {
-  const steps: Record<string, number> = { C:0, D:1, E:2, F:3, G:4, A:5, B:6 };
-  const distance = (Number(note.at(-1)) * 7 + steps[note[0]]) - (4 * 7 + 2);
-  return distance > -2 ? [] : Array.from({ length: Math.floor(-distance / 2) }, (_, index) => 126 + index * 14);
 }
 
 export function LibraryPractice({ piece }: { piece: LibraryPiece }) {
@@ -77,7 +67,7 @@ export function LibraryPractice({ piece }: { piece: LibraryPiece }) {
     <section className="piece-hero"><p className="eyebrow">完整小品 · RIGHT HAND ONLY</p><h1>{piece.title}</h1><p>{piece.composer}　·　{piece.level}　·　{piece.focus}</p></section>
     <section className="line-practice" aria-label="逐行读谱练习">
       <div className="line-status"><span>第 <b>{systemIndex + 1}</b> / {piece.systems.length} 行</span><span>{completed ? "已完成" : `当前音 ${current}`}</span></div>
-      <div className={`staff full-line ${wrong ? "wrong" : ""}`}><div className="clef">𝄞</div>{[0,1,2,3,4].map((line) => <i key={line} className="staff-line" style={{ top: 56 + line * 14 }} />)}<div className="notes-row">{notes.map((note, index) => <span key={`${note}-${index}`} className={`written-note ${index === cursor && !completed ? "current" : ""} ${index < cursor || completed ? "done" : ""}`} style={{ left: `${94 + index * Math.min(48, 720 / Math.max(notes.length - 1, 1))}px`, top: pitchToY(note) }}>{ledgerLines(note).map((top, lineIndex) => <em key={lineIndex} className="ledger-line" style={{ top: `${top - pitchToY(note)}px` }} />)}<b>{note.includes("#") ? "♯" : ""}</b><i /><small>{showKeyHints && index === cursor && !completed ? note : ""}</small></span>)}</div></div>
+      <TrebleStaff className={`full-line ${wrong ? "wrong" : ""}`} ariaLabel={`当前目标音：${current ?? "已完成"}`} notes={notes} currentIndex={cursor} completed={completed} keySignature={piece.keySignature} notePosition={(index, count) => ({ left: `${94 + index * Math.min(48, 720 / Math.max(count - 1, 1))}px` })} noteLabel={(note, index) => showKeyHints && index === cursor && !completed ? note : null} />
       <div className="feedback"><span className={wrong ? "error-dot" : "good-dot"}>{completed ? "✓" : wrong ? "×" : "●"}</span><strong>{message}</strong><span className="next-note">整曲进度 <b>{progress}%</b></span></div><div className="progress"><i style={{ width: `${progress}%` }} /></div>
       <div className="keyboard-caption"><span><b>电脑键盘</b>{showKeyHints ? " · 低音：Z–M　中音：Q–U　高音：I–]" : " · 盲练模式"}</span><button className={`hint-toggle ${showKeyHints ? "on" : ""}`} onClick={() => setShowKeyHints((value) => !value)}>{showKeyHints ? "琴键提示：开" : "琴键提示：关"}</button></div>
       <div className={`piano ${showKeyHints ? "" : "hints-off"}`}>{keyboardKeys.filter(({ black }) => !black).map(({ note, key }) => <button key={note} className={`white-key ${pressed === note ? "pressed" : ""} ${showKeyHints && current === note && !completed ? "target" : ""}`} onClick={() => playNote(note)}><b>{note}</b><kbd>{key.toUpperCase()}</kbd></button>)}<div className="black-keys">{keyboardKeys.filter(({ black }) => black).map(({ note, key }) => { const index = PLAYABLE_NOTES.indexOf(note); const whiteBefore = PLAYABLE_NOTES.slice(0, index).filter((value) => !value.includes("#")).length; return <button key={note} className={`black-key ${pressed === note ? "pressed" : ""} ${showKeyHints && current === note && !completed ? "target" : ""}`} style={{ left: `calc(${whiteBefore * 100 / 19}% - 2.55%)` }} onClick={() => playNote(note)}><kbd>{key.toUpperCase()}</kbd></button>; })}</div></div>

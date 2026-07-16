@@ -5,6 +5,7 @@ export type LibraryPiece = {
   level: string;
   focus: string;
   key: string;
+  keySignature?: "G";
   systems: string[][];
 };
 
@@ -43,6 +44,7 @@ export const LIBRARY_PIECES: LibraryPiece[] = [
     level: "03 · 跳进与 F♯",
     focus: "G 大调 · 第一处调号体验",
     key: "G 大调",
+    keySignature: "G",
     systems: [
       ["D4","G4","A4","B4","C5","D5","D5","D5","E5","D5","C5","B4","A4","G4","G4","G4"],
       ["C5","B4","A4","G4","F#4","G4","A4","B4","A4","G4","G4","G4","D5","C5","B4","A4"],
