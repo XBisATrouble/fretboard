@@ -96,7 +96,7 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundStatus, setSoundStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [showKeyHints, setShowKeyHints] = useState(true);
+  const [showKeyHints, setShowKeyHints] = useState(false);
   const selected = scores.find((score) => score.id === scoreId) ?? scores[0];
   const current = selected.notes[cursor];
   const progress = selected.notes.length ? Math.round((cursor / selected.notes.length) * 100) : 0;

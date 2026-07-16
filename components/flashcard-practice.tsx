@@ -47,7 +47,7 @@ export function FlashcardPractice() {
   const [correct, setCorrect] = useState(0);
   const [streak, setStreak] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showHints, setShowHints] = useState(true);
+  const [showHints, setShowHints] = useState(false);
   const deck = DECKS[deckId];
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 100;
 

@@ -33,7 +33,7 @@ export function LibraryPractice({ piece }: { piece: LibraryPiece }) {
   const [wrong, setWrong] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showKeyHints, setShowKeyHints] = useState(true);
+  const [showKeyHints, setShowKeyHints] = useState(false);
   const notes = piece.systems[systemIndex];
   const current = notes[cursor];
   const playedBefore = piece.systems.slice(0, systemIndex).flat().length + cursor;
