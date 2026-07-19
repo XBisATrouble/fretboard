@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { midiNumberToNote } from "./piano-range";
 
 type MidiMessage = { data: Uint8Array };
 type MidiInput = {
@@ -14,15 +15,6 @@ type MidiAccess = {
 };
 
 type MidiState = "connecting" | "connected" | "waiting" | "unsupported" | "denied";
-
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const LOWEST_MIDI_NOTE = 48; // C3
-const HIGHEST_MIDI_NOTE = 79; // G5
-
-function midiNumberToNote(number: number) {
-  if (number < LOWEST_MIDI_NOTE || number > HIGHEST_MIDI_NOTE) return null;
-  return `${NOTE_NAMES[number % 12]}${Math.floor(number / 12) - 1}`;
-}
 
 export function useMidiInput(onNote: (note: string) => void) {
   const onNoteRef = useRef(onNote);
@@ -77,8 +69,11 @@ export function useMidiInput(onNote: (note: string) => void) {
   }, [detach]);
 
   useEffect(() => {
-    void connect();
-    return detach;
+    const timer = window.setTimeout(() => void connect(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      detach();
+    };
   }, [connect, detach]);
 
   return { state, deviceNames, connect };

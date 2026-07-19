@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { PIANO_RANGE_LABEL, PLAYABLE_NOTE_SET } from "../../../lib/piano-range";
 
 const createScoresTable = `CREATE TABLE IF NOT EXISTS scores (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -9,11 +10,6 @@ const createScoresTable = `CREATE TABLE IF NOT EXISTS scores (
   music_xml TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
-const playableNotes = new Set([
-  "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
-  "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
-  "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5",
-]);
 const flatToSharp: Record<string, string> = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E" };
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,15 +40,21 @@ export async function GET() {
     "SELECT id, title, composer, level, notes_json, created_at FROM scores ORDER BY id DESC LIMIT 100",
   ).all<{ id: number; title: string; composer: string; level: string; notes_json: string; created_at: string }>();
 
-  return Response.json(results.map((score) => ({
-    id: `shared-${score.id}`,
-    title: score.title,
-    composer: score.composer,
-    level: score.level,
-    notes: JSON.parse(score.notes_json),
-    shared: true,
-    createdAt: score.created_at,
-  })), { headers: corsHeaders });
+  const scores = results.flatMap((score) => {
+    const notes = JSON.parse(score.notes_json) as string[];
+    if (!notes.every((note) => PLAYABLE_NOTE_SET.has(note))) return [];
+    return [{
+      id: `shared-${score.id}`,
+      title: score.title,
+      composer: score.composer,
+      level: score.level,
+      notes,
+      shared: true,
+      createdAt: score.created_at,
+    }];
+  });
+
+  return Response.json(scores, { headers: corsHeaders });
 }
 
 export function OPTIONS() {
@@ -70,8 +72,8 @@ export async function POST(request: Request) {
   const normalizedNotes = notes.map((note) => typeof note === "string" ? normalizeNote(note) : null);
   const musicXml = typeof body?.musicXml === "string" ? body.musicXml : "";
 
-  if (!title || title.length > 80 || !musicXml || musicXml.length > 180_000 || notes.length < 1 || notes.length > 256 || normalizedNotes.some((note) => !note || !playableNotes.has(note))) {
-    return Response.json({ error: "谱目格式无效，或音高超出 C3–G5 的 32 键练习范围。" }, { status: 400, headers: corsHeaders });
+  if (!title || title.length > 80 || !musicXml || musicXml.length > 180_000 || notes.length < 1 || notes.length > 256 || normalizedNotes.some((note) => !note || !PLAYABLE_NOTE_SET.has(note))) {
+    return Response.json({ error: `谱目格式无效，或音高超出 ${PIANO_RANGE_LABEL} 的 TINY 32 键练习范围。` }, { status: 400, headers: corsHeaders });
   }
 
   await ensureSchema();

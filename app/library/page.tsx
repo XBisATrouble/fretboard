@@ -1,10 +1,11 @@
+import { LibraryCatalog } from "../../components/library-catalog";
 import { LIBRARY_PIECES } from "../../lib/repertoire";
 import { sitePath } from "../../lib/site-path";
 
 export default function LibraryPage() {
   return <main className="library-page shell">
     <header className="topbar"><a className="brand" href={sitePath("/")}><span>谱</span>练</a><a className="back-library" href={sitePath("/")}>← 返回首页体验</a><div className="top-note">第一阶段 · <b>右手单音</b></div></header>
-    <section className="library-hero"><p className="eyebrow">REPERTOIRE · NO RHYTHM YET</p><h1>用完整小品，<em>读懂每一个音。</em></h1><p>先专注高音谱号与右手单音。每首曲子按谱行推进，答对后自动进入下一行。</p></section>
-    <section className="library-grid" aria-label="练习曲库">{LIBRARY_PIECES.map((piece, index) => <a className="library-card" href={sitePath(`/library/${piece.id}/`)} key={piece.id}><span className="library-number">{String(index + 1).padStart(2, "0")}</span><div><p>{piece.level}</p><h2>{piece.title}</h2><small>{piece.composer}</small><div className="piece-tags"><span>{piece.key}</span><span>{piece.focus}</span></div></div><b>开始练习 →</b></a>)}</section>
+    <section className="library-hero"><p className="eyebrow">REPERTOIRE · NO RHYTHM YET</p><h1>用经典旋律，<em>读懂每一个音。</em></h1><p>保留作品原调或传统常用调号，先专注高音谱号与右手单音；也可以按调号筛选曲目，集中熟悉升降号位置。</p></section>
+    <LibraryCatalog pieces={LIBRARY_PIECES} />
   </main>;
 }
