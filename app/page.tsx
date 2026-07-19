@@ -177,6 +177,7 @@ export default function Home() {
       <a className="brand" href="#top" aria-label="谱练首页"><span>谱</span>练</a>
       <a className="library-link" href={sitePath("/flashcards/")}>读谱闪卡</a>
       <a className="library-link" href={sitePath("/library/")}>完整曲库</a>
+      <a className="library-link" href={sitePath("/fretboard/")}>指板白板</a>
       <div className="top-note"><i />TINY 32 键音域 <b>F3 — C6</b></div>
       <button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((enabled) => !enabled)} aria-pressed={soundEnabled}>{!soundEnabled ? "♩ 声音关" : soundStatus === "loading" ? "♩ 加载钢琴…" : soundStatus === "error" ? "♩ 声音不可用" : "♩ 钢琴音色"}</button>
       <MidiConnect onNote={playNote} />
