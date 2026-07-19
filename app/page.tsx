@@ -7,6 +7,7 @@ import { PracticeResults, type PracticeAttempt } from "../components/practice-re
 import { TrebleStaff } from "../components/treble-staff";
 import type { KeySignature } from "../lib/key-signatures";
 import { KEY_TO_NOTE, NOTE_TO_KEY, PIANO_RANGE_LABEL, PLAYABLE_NOTES, SOUND_FONT_NOTES, WHITE_KEY_COUNT } from "../lib/piano-range";
+import { getPiece } from "../lib/repertoire";
 import { sitePath } from "../lib/site-path";
 import { usePracticeInput } from "../lib/use-practice-input";
 
@@ -44,10 +45,13 @@ async function playPianoTone(note: string) {
   player.play(note, context.currentTime, { gain: 0.72, attack: 0.01, decay: 0.16, sustain: 0.42, release: 1.3 });
 }
 
+const odeToJoy = getPiece("ode-to-joy")!;
+const minuetInG = getPiece("minuet-g")!;
+
 const FOUNDATION: Score[] = [
-  { id: "ode", title: "欢乐颂 · 主题", composer: "贝多芬", level: "01 · 初识音高", keySignature: "two-sharps", notes: ["F#4","F#4","G4","A4","A4","G4","F#4","E4","D4","D4","E4","F#4","F#4","E4","E4"] },
-  { id: "minuet", title: "G 大调小步舞曲 · 主题", composer: "巴赫（归属存疑）", level: "02 · 连续级进", keySignature: "one-sharp", notes: ["D4","G4","A4","B4","C5","D5","D5","D5","E5","D5","C5","B4","A4","G4","G4","G4"] },
-  { id: "turkish", title: "土耳其进行曲 · 主题", composer: "莫扎特", level: "03 · 跨越与回归", notes: ["A4","G#4","A4","G#4","A4","E5","D5","C5","B4","A4","G#4","A4","B4","C5","D5","E5"] },
+  { id: "ode", title: "欢乐颂 · 主题", composer: odeToJoy.composer, level: "01 · 初识音高", keySignature: odeToJoy.keySignature, notes: odeToJoy.systems[0] },
+  { id: "minuet", title: "G 大调小步舞曲 · 主题", composer: minuetInG.composer, level: "02 · 连续级进", keySignature: minuetInG.keySignature, notes: minuetInG.systems[0] },
+  { id: "turkish", title: "土耳其进行曲 · 主题", composer: "莫扎特", level: "03 · 半音与跨越", notes: ["B4","A4","G#4","A4","C5","D5","C5","B4","C5","E5","F5","E5","D#5","E5","B5","A5"] },
 ];
 
 function parseMusicXml(xml: string) {
