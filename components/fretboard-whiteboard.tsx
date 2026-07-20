@@ -481,7 +481,7 @@ export function FretboardWhiteboard() {
   const [history, setHistory] = useState<WorkbenchSnapshot[]>([]);
   const [activeBoardId, setActiveBoardId] = useState(1);
   const [startFret, setStartFret] = useState(1);
-  const [endFret, setEndFret] = useState(15);
+  const [endFret, setEndFret] = useState(16);
   const [preference, setPreference] = useState<NotePreference>("sharps");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("names");
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
@@ -584,7 +584,6 @@ export function FretboardWhiteboard() {
 
   function clearAll() {
     if (!boards.some((board) => board.markers.length || board.arrows.length)) return;
-    if (!window.confirm("清空所有指板上的音符和箭头？")) return;
     rememberWorkbench();
     setBoards((current) => current.map((board) => ({ ...board, markers: [], arrows: [] })));
   }
