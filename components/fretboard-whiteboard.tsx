@@ -1,11 +1,14 @@
 "use client";
 
-import { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
+import { instrument, type Player } from "soundfont-player";
+import { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { sitePath } from "../lib/site-path";
 
 type NotePreference = "sharps" | "flats";
 type DisplayMode = "names" | "dots";
 type Orientation = "horizontal" | "vertical";
 type Tool = "note" | "arrow";
+type SoundStatus = "idle" | "loading" | "ready" | "error";
 
 type Marker = { stringIndex: number; fret: number; root: boolean };
 type GridPoint = { fret: number; string: number };
@@ -35,6 +38,73 @@ const INK = "#17362f";
 const LINE = "#747971";
 const ACCENT = "#dc952c";
 const PAPER = "#fffdf8";
+const GUITAR_SOUND_ENABLED_KEY = "fretboard-guitar-sound-enabled";
+const GUITAR_SOUND_CHANGED_EVENT = "fretboard-guitar-sound-changed";
+const GUITAR_SAMPLE_MIDIS = Array.from({ length: 17 }, (_, index) => 40 + index * 3);
+const SOUND_FONT_NOTE_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+let guitarAudioContext: AudioContext | null = null;
+let nylonGuitar: Player | null = null;
+let guitarLoading: Promise<Player> | null = null;
+let fallbackSoundPreference = true;
+
+function subscribeToGuitarSound(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(GUITAR_SOUND_CHANGED_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(GUITAR_SOUND_CHANGED_EVENT, callback);
+  };
+}
+
+function guitarSoundSnapshot() {
+  try {
+    return window.localStorage.getItem(GUITAR_SOUND_ENABLED_KEY) !== "false";
+  } catch {
+    return fallbackSoundPreference;
+  }
+}
+
+function soundFontNote(midi: number) {
+  return `${SOUND_FONT_NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
+}
+
+function nearestGuitarSample(midi: number) {
+  return GUITAR_SAMPLE_MIDIS.reduce((closest, candidate) => Math.abs(candidate - midi) < Math.abs(closest - midi) ? candidate : closest);
+}
+
+function unlockGuitarAudio() {
+  const context = guitarAudioContext ?? new AudioContext();
+  guitarAudioContext = context;
+  if (context.state === "suspended") void context.resume();
+}
+
+async function playGuitarTone(midi: number) {
+  const context = guitarAudioContext ?? new AudioContext();
+  guitarAudioContext = context;
+  if (context.state === "suspended") await context.resume();
+  if (!guitarLoading) {
+    guitarLoading = instrument(context, sitePath("/audio/acoustic_guitar_nylon-mp3.js") as Parameters<typeof instrument>[1], {
+      notes: GUITAR_SAMPLE_MIDIS.map(soundFontNote),
+    }).then((player) => {
+      nylonGuitar = player;
+      return player;
+    }).catch((error) => {
+      guitarLoading = null;
+      throw error;
+    });
+  }
+  const player = nylonGuitar ?? await guitarLoading;
+  const sampleMidi = nearestGuitarSample(midi);
+  const playbackOptions = {
+    cents: (midi - sampleMidi) * 100,
+    gain: 0.78,
+    attack: 0.005,
+    decay: 0.22,
+    sustain: 0.3,
+    release: 1.5,
+  } as Parameters<Player["play"]>[2] & { cents: number };
+  player.play(soundFontNote(sampleMidi), context.currentTime, playbackOptions);
+}
 
 function geometryFor(width: number, height: number, orientation: Orientation, fretCount: number): Geometry {
   if (orientation === "horizontal") {
@@ -172,7 +242,7 @@ function drawBoard(
     context.save();
     context.strokeStyle = "rgba(77,83,78,.34)";
     context.lineWidth = 1.5;
-    const markerStrings = fret % 12 === 0 ? [2.5, 3.5] : [2.5];
+    const markerStrings = fret % 12 === 0 ? [1.5, 3.5] : [2.5];
     for (const string of markerStrings) {
       const point = gridToCanvas({ fret: fret + 0.5, string }, geometry, orientation, startFret);
       context.beginPath();
@@ -217,11 +287,12 @@ type BoardCanvasProps = {
   displayMode: DisplayMode;
   tool: Tool;
   onActivate: () => void;
+  onSoundUnlock: () => void;
   onMarker: (marker: Omit<Marker, "root">, makeRoot: boolean) => void;
   onArrow: (arrow: BoardArrow) => void;
 };
 
-function BoardCanvas({ board, active, startFret, endFret, orientation, preference, displayMode, tool, onActivate, onMarker, onArrow }: BoardCanvasProps) {
+function BoardCanvas({ board, active, startFret, endFret, orientation, preference, displayMode, tool, onActivate, onSoundUnlock, onMarker, onArrow }: BoardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const clickTimer = useRef<number | null>(null);
   const arrowStart = useRef<GridPoint | null>(null);
@@ -273,6 +344,7 @@ function BoardCanvas({ board, active, startFret, endFret, orientation, preferenc
     const marker = markerAt(event);
     if (!marker) return;
     onActivate();
+    onSoundUnlock();
     if (event.detail >= 2) {
       if (clickTimer.current !== null) window.clearTimeout(clickTimer.current);
       clickTimer.current = null;
@@ -333,6 +405,8 @@ export function FretboardWhiteboard() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>("names");
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
   const [tool, setTool] = useState<Tool>("note");
+  const [soundStatus, setSoundStatus] = useState<SoundStatus>("idle");
+  const soundEnabled = useSyncExternalStore(subscribeToGuitarSound, guitarSoundSnapshot, () => true);
 
   const activeBoard = boards.find((board) => board.id === activeBoardId) ?? boards[0];
 
@@ -355,6 +429,13 @@ export function FretboardWhiteboard() {
   }
 
   function toggleMarker(id: number, marker: Omit<Marker, "root">, makeRoot: boolean) {
+    const board = boards.find((item) => item.id === id);
+    const markerExists = board?.markers.some((item) => item.fret === marker.fret && item.stringIndex === marker.stringIndex) ?? false;
+    if (soundEnabled && (makeRoot || !markerExists)) {
+      setSoundStatus("loading");
+      const midi = TUNING[marker.stringIndex].midi + marker.fret;
+      void playGuitarTone(midi).then(() => setSoundStatus("ready")).catch(() => setSoundStatus("error"));
+    }
     updateBoard(id, (board) => {
       const index = board.markers.findIndex((item) => item.fret === marker.fret && item.stringIndex === marker.stringIndex);
       if (makeRoot) {
@@ -437,12 +518,24 @@ export function FretboardWhiteboard() {
     if (next <= startFret) setStartFret(Math.max(0, next - 1));
   }
 
+  function toggleSound() {
+    const next = !soundEnabled;
+    fallbackSoundPreference = next;
+    try {
+      window.localStorage.setItem(GUITAR_SOUND_ENABLED_KEY, String(next));
+    } catch {
+      // The in-memory preference still works when browser storage is unavailable.
+    }
+    window.dispatchEvent(new Event(GUITAR_SOUND_CHANGED_EVENT));
+  }
+
   return <section className="fretboard-workbench" aria-label="指板白板工作区">
     <div className="fretboard-toolbar">
       <label className="fretboard-title-field"><span>图片标题</span><input value={title} maxLength={36} onChange={(event) => setTitle(event.target.value)} placeholder="例如：G 大调指型" /></label>
       <div className="fretboard-actions">
         <button className={tool === "note" ? "selected" : ""} onClick={() => setTool("note")} aria-pressed={tool === "note"}>● 音符</button>
         <button className={tool === "arrow" ? "selected" : ""} onClick={() => setTool("arrow")} aria-pressed={tool === "arrow"}>↗ 箭头</button>
+        <button className={`fretboard-sound-toggle ${soundEnabled ? "on" : ""}`} onClick={toggleSound} aria-pressed={soundEnabled}>{!soundEnabled ? "♩ 声音关" : soundStatus === "loading" ? "♩ 加载吉他…" : soundStatus === "error" ? "♩ 音源不可用" : "♩ 吉他音色"}</button>
         <button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>↻ 旋转</button>
         <button onClick={downloadPng} className="primary">↓ 下载 PNG</button>
       </div>
@@ -459,8 +552,8 @@ export function FretboardWhiteboard() {
     </div>
 
     <div className={`fretboard-board-list ${orientation}`}>
-      {boards.map((board) => <BoardCanvas key={board.id} board={board} active={board.id === activeBoardId} startFret={startFret} endFret={endFret} orientation={orientation} preference={preference} displayMode={displayMode} tool={tool} onActivate={() => setActiveBoardId(board.id)} onMarker={(marker, makeRoot) => toggleMarker(board.id, marker, makeRoot)} onArrow={(arrow) => addArrow(board.id, arrow)} />)}
+      {boards.map((board) => <BoardCanvas key={board.id} board={board} active={board.id === activeBoardId} startFret={startFret} endFret={endFret} orientation={orientation} preference={preference} displayMode={displayMode} tool={tool} onActivate={() => setActiveBoardId(board.id)} onSoundUnlock={() => { if (soundEnabled) unlockGuitarAudio(); }} onMarker={(marker, makeRoot) => toggleMarker(board.id, marker, makeRoot)} onArrow={(arrow) => addArrow(board.id, arrow)} />)}
     </div>
-    <div className="fretboard-help"><span><b>单击</b> 添加或删除音符</span><span><b>双击</b> 切换橙色主音</span><span><b>箭头模式</b> 在指板上拖拽</span><span>标准调弦 E–A–D–G–B–E</span></div>
+    <div className="fretboard-help"><span><b>单击</b> 添加或删除音符</span><span><b>双击</b> 切换橙色主音</span><span><b>箭头模式</b> 在指板上拖拽</span><span>标准调弦 E–A–D–G–B–E</span><a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">吉他音源 FluidR3_GM · CC BY 3.0</a></div>
   </section>;
 }
