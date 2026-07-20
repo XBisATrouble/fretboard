@@ -169,15 +169,14 @@ function drawBoard(
   const markerFrets = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
   for (const fret of markerFrets) {
     if (fret < startFret || fret > endFret) continue;
-    const point = gridToCanvas({ fret: fret + 0.5, string: 2.5 }, geometry, orientation, startFret);
     context.save();
     context.strokeStyle = "rgba(77,83,78,.34)";
     context.lineWidth = 1.5;
-    const offsets = fret % 12 === 0 ? [-11, 11] : [0];
-    for (const offset of offsets) {
+    const markerStrings = fret % 12 === 0 ? [2.5, 3.5] : [2.5];
+    for (const string of markerStrings) {
+      const point = gridToCanvas({ fret: fret + 0.5, string }, geometry, orientation, startFret);
       context.beginPath();
-      if (orientation === "horizontal") context.arc(point.x, point.y + offset, 7, 0, Math.PI * 2);
-      else context.arc(point.x + offset, point.y, 7, 0, Math.PI * 2);
+      context.arc(point.x, point.y, 7, 0, Math.PI * 2);
       context.stroke();
     }
     context.restore();
