@@ -9,6 +9,7 @@ export default function FretboardPage() {
       <a className="library-link" href={sitePath("/flashcards/")}>读谱闪卡</a>
       <a className="library-link" href={sitePath("/library/")}>完整曲库</a>
       <span className="library-link current">指板白板</span>
+      <a className="library-link" href={sitePath("/arpeggio/")}>琶音练习</a>
     </header>
     <section className="fretboard-hero">
       <p className="eyebrow">FRETBOARD CANVAS · STANDARD TUNING</p>
