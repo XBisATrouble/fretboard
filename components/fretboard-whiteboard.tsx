@@ -15,7 +15,7 @@ type KeyMode = "major" | "minor";
 type Marker = { stringIndex: number; fret: number; root: boolean; label?: string };
 type GridPoint = { fret: number; string: number };
 type BoardArrow = { start: GridPoint; end: GridPoint };
-type BoardState = { id: number; markers: Marker[]; arrows: BoardArrow[] };
+type BoardState = { id: number; markers: Marker[]; arrows: BoardArrow[]; position: number | null };
 type WorkbenchSnapshot = { title: string; activeBoardId: number; boards: BoardState[] };
 
 type Geometry = {
@@ -43,6 +43,7 @@ const MAJOR_DEGREES = ["I", "ii", "iii", "IV", "V", "vi", "viiø"] as const;
 const MINOR_DEGREES = ["i", "iiø", "III", "iv", "v", "VI", "VII"] as const;
 const MAJOR_SEVENTH_QUALITIES = ["maj7", "m7", "m7", "maj7", "7", "m7", "m7♭5"] as const;
 const MINOR_SEVENTH_QUALITIES = ["m7", "m7♭5", "maj7", "m7", "m7", "maj7", "7"] as const;
+const POSITION_ROMANS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"] as const;
 const G_FLAT_MAJOR_NOTES = ["G♭", "A♭", "B♭", "C♭", "D♭", "E♭", "F"] as const;
 const CIRCLE_KEYS = [
   { major: "C", majorPc: 0, minor: "Am", minorPc: 9, notes: ["C", "D", "E", "F", "G", "A", "B"] },
@@ -177,11 +178,11 @@ function keyPitchClasses(index: number, mode: KeyMode) {
   return intervals.map((interval) => (tonic + interval) % 12);
 }
 
-function generatedMarkers(startFret: number, endFret: number, pitchClasses: number[], noteNames: string[], rootPc: number) {
+function generatedMarkers(minimumFret: number, maximumFret: number, pitchClasses: number[], noteNames: string[], rootPc: number) {
   const labels = new Map(pitchClasses.map((pitchClass, index) => [pitchClass, noteNames[index]]));
   const markers: Marker[] = [];
   TUNING.forEach((string, stringIndex) => {
-    for (let fret = startFret === 1 ? 0 : startFret; fret <= endFret; fret += 1) {
+    for (let fret = minimumFret; fret <= maximumFret; fret += 1) {
       const pitchClass = (string.midi + fret) % 12;
       const label = labels.get(pitchClass);
       if (label) markers.push({ stringIndex, fret, root: pitchClass === rootPc, label });
@@ -267,6 +268,44 @@ function drawBoard(
   context.font = '12px Arial, "PingFang SC", sans-serif';
   context.textAlign = "center";
   context.textBaseline = "middle";
+
+  if (board.position) {
+    const position = board.position;
+    const paintFretRange = (fromFret: number, toFret: number, fillStyle: string) => {
+      const visibleStart = Math.max(startFret, fromFret);
+      const visibleEnd = Math.min(endFret, toFret);
+      if (visibleStart > visibleEnd) return;
+      context.fillStyle = fillStyle;
+      if (orientation === "horizontal") {
+        context.fillRect(
+          geometry.left + (visibleStart - startFret) * geometry.fretSize,
+          geometry.top,
+          (visibleEnd - visibleStart + 1) * geometry.fretSize,
+          geometry.height,
+        );
+      } else {
+        context.fillRect(
+          geometry.left,
+          geometry.top + (visibleStart - startFret) * geometry.fretSize,
+          geometry.width,
+          (visibleEnd - visibleStart + 1) * geometry.fretSize,
+        );
+      }
+    };
+
+    paintFretRange(position - 1, position - 1, "rgba(220,149,44,.10)");
+    paintFretRange(position, position + 3, "rgba(91,126,99,.10)");
+    paintFretRange(position + 4, position + 4, "rgba(220,149,44,.10)");
+
+    if (position === 1 && startFret === 1) {
+      context.fillStyle = "rgba(220,149,44,.10)";
+      if (orientation === "horizontal") context.fillRect(geometry.left - 48, geometry.top, 38, geometry.height);
+      else context.fillRect(geometry.left, geometry.top - 42, geometry.width, 32);
+    }
+  }
+
+  context.strokeStyle = LINE;
+  context.fillStyle = INK;
 
   for (let stringIndex = 0; stringIndex < 6; stringIndex += 1) {
     const lineWidth = 1 + (5 - stringIndex) * 0.34;
@@ -465,10 +504,11 @@ function BoardCanvas({ board, active, startFret, endFret, orientation, preferenc
   }
 
   const markerSummary = board.markers.map((marker) => `${noteName(marker, preference)}，${marker.stringIndex + 1}弦${marker.fret === 0 ? "空弦" : `${marker.fret}品`}${marker.root ? "，主音" : ""}`).join("；");
+  const positionLabel = board.position ? ` · 第 ${POSITION_ROMANS[board.position - 1]} 把位` : "";
   return <article className={`fretboard-board ${active ? "active" : ""} ${orientation}`}>
-    <div className="fretboard-board-label"><span>指板 {board.id}</span><small>{active ? "正在编辑" : "点击切换"}</small></div>
+    <div className="fretboard-board-label"><span>指板 {board.id}{positionLabel}</span><small>{active ? "正在编辑" : "点击切换"}</small></div>
     <div className="fretboard-scroll">
-      <canvas ref={canvasRef} className="fretboard-canvas" aria-label={`指板 ${board.id}${markerSummary ? `：${markerSummary}` : "，暂无标记"}`} onClick={handleClick} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={() => { arrowStart.current = null; setPreview(null); }} />
+      <canvas ref={canvasRef} className="fretboard-canvas" aria-label={`指板 ${board.id}${positionLabel}${markerSummary ? `：${markerSummary}` : "，暂无标记"}`} onClick={handleClick} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={() => { arrowStart.current = null; setPreview(null); }} />
     </div>
   </article>;
 }
@@ -477,7 +517,7 @@ let nextBoardId = 2;
 
 export function FretboardWhiteboard() {
   const [title, setTitle] = useState("吉他指板练习");
-  const [boards, setBoards] = useState<BoardState[]>([{ id: 1, markers: [], arrows: [] }]);
+  const [boards, setBoards] = useState<BoardState[]>([{ id: 1, markers: [], arrows: [], position: null }]);
   const [history, setHistory] = useState<WorkbenchSnapshot[]>([]);
   const [activeBoardId, setActiveBoardId] = useState(1);
   const [startFret, setStartFret] = useState(1);
@@ -490,6 +530,7 @@ export function FretboardWhiteboard() {
   const [circleKeyIndex, setCircleKeyIndex] = useState(0);
   const [keyMode, setKeyMode] = useState<KeyMode>("major");
   const [degree, setDegree] = useState(0);
+  const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [soundStatus, setSoundStatus] = useState<SoundStatus>("idle");
   const soundEnabled = useSyncExternalStore(subscribeToGuitarSound, guitarSoundSnapshot, () => true);
 
@@ -504,6 +545,12 @@ export function FretboardWhiteboard() {
   const selectedChordPitchClasses = chordScaleIndexes.map((index) => selectedScalePitchClasses[index]);
   const selectedChordNoteNames = chordScaleIndexes.map((index) => selectedScaleNoteNames[index]);
   const selectedChordName = `${selectedChordNoteNames[0]}${seventhQualities[degree]}`;
+  const selectedPositionRoman = selectedPosition ? POSITION_ROMANS[selectedPosition - 1] : null;
+  const selectedPositionDescription = selectedPosition === 1
+    ? "核心 1–4 品 · 含空弦与第 5 品扩展"
+    : selectedPosition
+      ? `核心 ${selectedPosition}–${selectedPosition + 3} 品 · 含 ${selectedPosition - 1}、${selectedPosition + 4} 品扩展`
+      : `当前显示范围 · ${startFret === 1 ? "空弦、" : ""}${startFret}–${endFret} 品`;
 
   function rememberWorkbench() {
     const snapshot: WorkbenchSnapshot = {
@@ -548,7 +595,7 @@ export function FretboardWhiteboard() {
         if (!next.some((board) => board.id === activeBoardId)) setActiveBoardId(next[next.length - 1].id);
         return next;
       }
-      const additions = Array.from({ length: nextCount - current.length }, () => ({ id: nextBoardId++, markers: [], arrows: [] }));
+      const additions = Array.from({ length: nextCount - current.length }, () => ({ id: nextBoardId++, markers: [], arrows: [], position: null }));
       return [...current, ...additions];
     });
   }
@@ -583,9 +630,9 @@ export function FretboardWhiteboard() {
   }
 
   function clearAll() {
-    if (!boards.some((board) => board.markers.length || board.arrows.length)) return;
+    if (!boards.some((board) => board.markers.length || board.arrows.length || board.position)) return;
     rememberWorkbench();
-    setBoards((current) => current.map((board) => ({ ...board, markers: [], arrows: [] })));
+    setBoards((current) => current.map((board) => ({ ...board, markers: [], arrows: [], position: null })));
   }
 
   function downloadPng() {
@@ -668,12 +715,18 @@ export function FretboardWhiteboard() {
     const pitchClasses = isScale ? selectedScalePitchClasses : selectedChordPitchClasses;
     const noteNames = isScale ? selectedScaleNoteNames : selectedChordNoteNames;
     const rootPc = isScale ? selectedScalePitchClasses[0] : selectedChordPitchClasses[0];
-    const markers = generatedMarkers(startFret, endFret, pitchClasses, noteNames, rootPc);
+    const visibleMinimum = startFret === 1 ? 0 : startFret;
+    const minimumFret = selectedPosition ? Math.max(visibleMinimum, selectedPosition - 1) : visibleMinimum;
+    const maximumFret = selectedPosition ? Math.min(endFret, selectedPosition + 4) : endFret;
+    const markers = minimumFret <= maximumFret
+      ? generatedMarkers(minimumFret, maximumFret, pitchClasses, noteNames, rootPc)
+      : [];
+    const positionTitle = selectedPosition ? ` · 第 ${POSITION_ROMANS[selectedPosition - 1]} 把位` : "";
     rememberWorkbench();
-    updateBoard(activeBoard.id, (board) => ({ ...board, markers }));
+    updateBoard(activeBoard.id, (board) => ({ ...board, markers, position: selectedPosition }));
     setTitle(isScale
-      ? `${selectedKeyTitle}音阶`
-      : `${selectedKeyTitle} · ${degreeLabels[degree]} 级 ${selectedChordName} 七和弦琶音`);
+      ? `${selectedKeyTitle}音阶${positionTitle}`
+      : `${selectedKeyTitle} · ${degreeLabels[degree]} 级 ${selectedChordName} 七和弦琶音${positionTitle}`);
   }
 
   return <section className="fretboard-workbench" aria-label="指板白板工作区">
@@ -691,7 +744,7 @@ export function FretboardWhiteboard() {
     <section className="quick-mark-panel" aria-labelledby="quick-mark-title">
       <header className="quick-mark-heading">
         <div><span>QUICK MARK</span><h2 id="quick-mark-title">快速标记</h2></div>
-        <p>从五度圈选择调，在当前指板上一键展开全部位置。</p>
+        <p>从五度圈选择调，在当前指板上一键展开全指板或局部把位。</p>
       </header>
       <div className="quick-mark-body">
         <div className="circle-wrap">
@@ -728,9 +781,21 @@ export function FretboardWhiteboard() {
             <button type="button" role="tab" aria-selected={quickMarkMode === "scale"} className={quickMarkMode === "scale" ? "selected" : ""} onClick={() => setQuickMarkMode("scale")}>音阶</button>
             <button type="button" role="tab" aria-selected={quickMarkMode === "arpeggio"} className={quickMarkMode === "arpeggio" ? "selected" : ""} onClick={() => setQuickMarkMode("arpeggio")}>级数七和弦</button>
           </div>
+          <label className="position-picker">
+            <span>生成范围</span>
+            <select value={selectedPosition ?? "all"} onChange={(event) => setSelectedPosition(event.target.value === "all" ? null : Number(event.target.value))}>
+              <option value="all">全指板 · 当前显示范围</option>
+              {POSITION_ROMANS.map((roman, index) => {
+                const position = index + 1;
+                const range = position === 1 ? "空弦–5 品" : `${position - 1}–${position + 4} 品`;
+                return <option key={roman} value={position}>第 {roman} 把位 · {range}</option>;
+              })}
+            </select>
+            <small>{selectedPositionDescription}</small>
+          </label>
           <div className="quick-mark-selection">
             <span>当前选择</span>
-            <h3>{quickMarkMode === "scale" ? `${selectedKeyTitle}音阶` : `${selectedKeyTitle} · ${degreeLabels[degree]} 级 ${selectedChordName}`}</h3>
+            <h3>{quickMarkMode === "scale" ? `${selectedKeyTitle}音阶` : `${selectedKeyTitle} · ${degreeLabels[degree]} 级 ${selectedChordName}`}{selectedPositionRoman ? ` · 第 ${selectedPositionRoman} 把位` : ""}</h3>
             <p>{(quickMarkMode === "scale" ? selectedScaleNoteNames : selectedChordNoteNames).join("　")}</p>
           </div>
           {quickMarkMode === "arpeggio" && <div className="degree-picker" aria-label="选择级数">
@@ -741,7 +806,7 @@ export function FretboardWhiteboard() {
           </div>}
           <div className="quick-mark-submit">
             <button type="button" onClick={applyQuickMark}>标记到指板 {activeBoard.id}</button>
-            <small>替换当前指板的音符，保留已经画好的箭头</small>
+            <small>替换当前指板的音符，保留箭头；绿色为核心把位，暖色为扩展品</small>
           </div>
         </div>
       </div>
@@ -760,6 +825,6 @@ export function FretboardWhiteboard() {
     <div className={`fretboard-board-list ${orientation}`}>
       {boards.map((board) => <BoardCanvas key={board.id} board={board} active={board.id === activeBoardId} startFret={startFret} endFret={endFret} orientation={orientation} preference={preference} displayMode={displayMode} tool={tool} onActivate={() => setActiveBoardId(board.id)} onSoundUnlock={() => { if (soundEnabled) unlockGuitarAudio(); }} onMarker={(marker, makeRoot) => toggleMarker(board.id, marker, makeRoot)} onArrow={(arrow) => addArrow(board.id, arrow)} />)}
     </div>
-    <div className="fretboard-help"><span><b>空弦音</b> 点击上弦枕外侧的音名</span><span><b>撤回</b> 支持 ⌘/Ctrl + Z</span><span><b>快速标记</b> 替换当前指板音符</span><span><b>单击</b> 添加或删除音符</span><span><b>双击</b> 切换橙色主音</span><span><b>箭头模式</b> 在指板上拖拽</span><span>标准调弦 E–A–D–G–B–E</span><a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">吉他音源 FluidR3_GM · CC BY 3.0</a></div>
+    <div className="fretboard-help"><span><b>空弦音</b> 点击上弦枕外侧的音名</span><span><b>把位范围</b> 核心四品 + 两侧各扩一品</span><span><b>撤回</b> 支持 ⌘/Ctrl + Z</span><span><b>快速标记</b> 替换当前指板音符</span><span><b>单击</b> 添加或删除音符</span><span><b>双击</b> 切换橙色主音</span><span><b>箭头模式</b> 在指板上拖拽</span><span>标准调弦 E–A–D–G–B–E</span><a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">吉他音源 FluidR3_GM · CC BY 3.0</a></div>
   </section>;
 }
