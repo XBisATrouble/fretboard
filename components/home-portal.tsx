@@ -21,7 +21,7 @@ const PATHS = [
     eyebrow: "EAR · SINGING",
     title: "视唱练耳",
     description: "建立声音、音程、和声与乐谱之间的内在联系。",
-    links: [{ label: "查看能力规划", href: "/ear-training/" }],
+    links: [{ label: "开始音程听辨", href: "/ear-training/intervals/" }, { label: "查看能力地图", href: "/ear-training/" }],
   },
   {
     id: "guitar",
@@ -51,7 +51,7 @@ export function HomePortal() {
     </section>
     <section className="learning-path-grid" aria-label="选择学习方向">
       {PATHS.map((path) => <article key={path.id} className={`learning-path-card ${path.id}`}>
-        <span className="path-number">{path.number}</span><p>{path.eyebrow}</p><h2>{path.title}{path.id === "ear" && <small>规划中</small>}</h2><div className="path-motif" aria-hidden="true"><i /><i /><i /><i /><i /></div><p className="path-description">{path.description}</p><div className="path-links">{path.links.map((link, index) => <a key={link.href} className={index === 0 ? "primary" : ""} href={sitePath(link.href)}>{link.label} <span>→</span></a>)}</div>
+        <span className="path-number">{path.number}</span><p>{path.eyebrow}</p><h2>{path.title}</h2><div className="path-motif" aria-hidden="true"><i /><i /><i /><i /><i /></div><p className="path-description">{path.description}</p><div className="path-links">{path.links.map((link, index) => <a key={link.href} className={index === 0 ? "primary" : ""} href={sitePath(link.href)}>{link.label} <span>→</span></a>)}</div>
       </article>)}
     </section>
   </main>;
