@@ -16,6 +16,7 @@ export default function ArpeggioPage() {
       <a className="library-link" href={sitePath("/library/")}>完整曲库</a>
       <a className="library-link" href={sitePath("/fretboard/")}>指板白板</a>
       <span className="library-link current">琶音练习</span>
+      <a className="library-link" href={sitePath("/triads/")}>三和弦练习</a>
     </header>
     <section className="arpeggio-hero">
       <p className="eyebrow">ARPEGGIO LAB · CHORD PROGRESSION</p>
