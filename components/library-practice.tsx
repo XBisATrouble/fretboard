@@ -4,10 +4,10 @@ import { instrument, type Player } from "soundfont-player";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LibraryPiece } from "../lib/repertoire";
 import { KEY_TO_NOTE, NOTE_TO_KEY, PLAYABLE_NOTES, SOUND_FONT_NOTES, WHITE_KEY_COUNT } from "../lib/piano-range";
-import { sitePath } from "../lib/site-path";
 import { usePracticeInput } from "../lib/use-practice-input";
 import { MidiConnect } from "./midi-connect";
 import { PracticeResults, type PracticeAttempt } from "./practice-results";
+import { SiteHeader } from "./site-header";
 import { TrebleStaff } from "./treble-staff";
 
 let audioContext: AudioContext | null = null;
@@ -86,7 +86,7 @@ export function LibraryPractice({ piece }: { piece: LibraryPiece }) {
 
   const keyboardKeys = useMemo(() => PLAYABLE_NOTES.map((note) => ({ note, key: NOTE_TO_KEY[note], black: note.includes("#") })), []);
   return <main className="library-practice shell">
-    <header className="topbar"><a className="brand" href={sitePath("/")}><span>谱</span>练</a><a className="back-library" href={sitePath("/library/")}>← 返回曲库</a><div className="top-note">右手单音 · <b>{piece.key}</b></div><button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "♩ 钢琴音色" : "♩ 声音关"}</button><MidiConnect onNote={playNote} /></header>
+    <SiteHeader area="piano" currentHref="/library/" currentLabel={piece.title} resumeHref={`/library/${piece.id}/`} actions={<><span className="top-note">右手单音 · <b>{piece.key}</b></span><button className={`sound-button ${soundEnabled ? "on" : ""}`} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "♩ 钢琴音色" : "♩ 声音关"}</button><MidiConnect onNote={playNote} /></>} />
     <section className="piece-hero"><p className="eyebrow">{formLabel} · RIGHT HAND ONLY</p><h1>{piece.title}</h1><p>{piece.composer}　·　{piece.level}　·　{piece.focus}</p></section>
     <section className="line-practice" aria-label="逐行读谱练习">
       <div className="line-status"><span>{reviewSystems ? "错题复练" : formLabel} · 第 <b>{systemIndex + 1}</b> / {systems.length} 行</span><span>{completed ? "已完成" : `当前音 ${current}`}</span></div>

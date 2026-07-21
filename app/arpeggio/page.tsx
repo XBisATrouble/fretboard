@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ArpeggioPractice } from "../../components/arpeggio-practice";
-import { sitePath } from "../../lib/site-path";
+import { SiteHeader } from "../../components/site-header";
 
 export const metadata: Metadata = {
   title: "琶音练习｜谱练",
@@ -9,15 +9,7 @@ export const metadata: Metadata = {
 
 export default function ArpeggioPage() {
   return <main className="arpeggio-page shell">
-    <header className="topbar">
-      <a className="brand" href={sitePath("/")}><span>谱</span>练</a>
-      <a className="back-library" href={sitePath("/")}>← 返回首页体验</a>
-      <a className="library-link" href={sitePath("/flashcards/")}>读谱闪卡</a>
-      <a className="library-link" href={sitePath("/library/")}>完整曲库</a>
-      <a className="library-link" href={sitePath("/fretboard/")}>指板白板</a>
-      <span className="library-link current">琶音练习</span>
-      <a className="library-link" href={sitePath("/triads/")}>三和弦练习</a>
-    </header>
+    <SiteHeader area="guitar" currentHref="/arpeggio/" currentLabel="琶音练习" />
     <section className="arpeggio-hero">
       <p className="eyebrow">ARPEGGIO LAB · CHORD PROGRESSION</p>
       <h1>听见和声，<em>看见琶音。</em></h1>

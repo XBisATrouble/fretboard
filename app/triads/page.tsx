@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { TriadPractice } from "../../components/triad-practice";
-import { sitePath } from "../../lib/site-path";
+import { SiteHeader } from "../../components/site-header";
 
 export const metadata: Metadata = {
   title: "三和弦练习｜谱练",
@@ -9,15 +9,7 @@ export const metadata: Metadata = {
 
 export default function TriadsPage() {
   return <main className="triad-page shell">
-    <header className="topbar">
-      <a className="brand" href={sitePath("/")}><span>谱</span>练</a>
-      <a className="back-library" href={sitePath("/")}>← 返回首页体验</a>
-      <a className="library-link" href={sitePath("/flashcards/")}>读谱闪卡</a>
-      <a className="library-link" href={sitePath("/library/")}>完整曲库</a>
-      <a className="library-link" href={sitePath("/fretboard/")}>指板白板</a>
-      <a className="library-link" href={sitePath("/arpeggio/")}>琶音练习</a>
-      <span className="library-link current">三和弦练习</span>
-    </header>
+    <SiteHeader area="guitar" currentHref="/triads/" currentLabel="三和弦练习" />
     <section className="triad-hero">
       <p className="eyebrow">TRIAD LAB · CLOSE VOICING</p>
       <h1>三根弦，<em>看清和声骨架。</em></h1>
